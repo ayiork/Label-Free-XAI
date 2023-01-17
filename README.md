@@ -96,8 +96,9 @@ where experiment_name can take the following values:
 | consistency_examples | Consistency check for label-free<br/> example importance (paper Section 4.1) |
 | roar_test            | ROAR test for label-free<br/> feature importance (paper Appendix C)          |
 | pretext              | Pretext task sensitivity<br/> use case (paper Section 4.2)                   |
+| pretext_integrated_grads               |      |
 | disvae               | Challenging assumptions with <br/> disentangled VAEs (paper Section 4.3)     |
-
+| disvae_integrated_grads               |      |
 
 The resulting plots and data are saved [here](results/mnist).
 
