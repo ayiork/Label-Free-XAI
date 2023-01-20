@@ -54,6 +54,33 @@ def attribute_individual_dim(
     attributions = np.abs(np.expand_dims(latents, (2, 3)) * attributions)
     return attributions
 
+def attribute_individual_dim_saliency(
+    encoder: callable,
+    dim_latent: int,
+    data_loader: torch.utils.data.DataLoader,
+    device: torch.device,
+    attr_method: Attribution,
+    baseline: torch.Tensor,
+) -> np.ndarray:
+    attributions = []
+    latents = []
+    for input_batch, _ in data_loader:
+        input_batch = input_batch.to(device)
+        attributions_batch = []
+        latents.append(encoder(input_batch).detach().cpu().numpy())
+        for dim in range(dim_latent):
+            attribution = (
+                attr_method.attribute(input_batch, target=dim)
+                .detach()
+                .cpu()
+                .numpy()
+            )
+            attributions_batch.append(attribution)
+        attributions.append(np.concatenate(attributions_batch, axis=1))
+    latents = np.concatenate(latents)
+    attributions = np.concatenate(attributions)
+    attributions = np.abs(np.expand_dims(latents, (2, 3)) * attributions)
+    return attributions
 
 def attribute_auxiliary(
     encoder: Module,
