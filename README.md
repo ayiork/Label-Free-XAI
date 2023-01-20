@@ -97,8 +97,10 @@ where experiment_name can take the following values:
 | roar_test            | ROAR test for label-free<br/> feature importance (paper Appendix C)          |
 | pretext              | Pretext task sensitivity<br/> use case (paper Section 4.2)                   |
 | pretext_integrated_grads               |      |
+| pretext_saliency               |      |
 | disvae               | Challenging assumptions with <br/> disentangled VAEs (paper Section 4.3)     |
 | disvae_integrated_grads               |      |
+| disvae_saliency               |      |
 
 The resulting plots and data are saved [here](results/mnist).
 
