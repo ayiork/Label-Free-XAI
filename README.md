@@ -93,6 +93,7 @@ where experiment_name can take the following values:
 | experiment_name      | description                                                                  |
 |----------------------|------------------------------------------------------------------------------|
 | consistency_features | Consistency check for label-free<br/> feature importance (paper Section 4.1) |
+| consistency_features_with_deeplift               |      |
 | consistency_examples | Consistency check for label-free<br/> example importance (paper Section 4.1) |
 | roar_test            | ROAR test for label-free<br/> feature importance (paper Appendix C)          |
 | pretext              | Pretext task sensitivity<br/> use case (paper Section 4.2)                   |
