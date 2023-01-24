@@ -15,7 +15,7 @@ data_dir: data/cifar10
 experiment_name: consistency_features # consistency_features or consistency_examples
 
 # model
-backbone: resnet18 # or resnet34, resnet50
+backbone: resnet18 #or densenet121, resnet18, resnet34, resnet50
 projection_dim: 128 # "[...] to project the representation to a 128-dimensional latent space"
 
 # train options

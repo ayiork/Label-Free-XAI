@@ -8,31 +8,88 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import torch
+import torch.nn as nn
 from captum.attr import GradientShap, IntegratedGradients, Saliency
-from models.images import SimCLR
+from captum.metrics import infidelity, sensitivity_max
+from lfxai.models.images import SimCLR
 from omegaconf import DictConfig
 from torch.utils.data import DataLoader, Subset
 from torchvision.datasets import CIFAR10
 from torchvision.transforms import GaussianBlur, ToTensor
+from torchvision.models import resnet18, densenet121
+from torchvision.utils import save_image
 
 from lfxai.explanations.examples import NearestNeighbours, SimplEx
-from lfxai.explanations.features import attribute_auxiliary
+from lfxai.explanations.features import attribute_auxiliary, attribute_individual_dim
 from lfxai.utils.feature_attribution import generate_masks
 from lfxai.utils.metrics import similarity_rates
+
+
+class Classifier(nn.Module):
+    def __init__(self, in_dim, num_classes):
+        super(Classifier, self).__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(in_dim, num_classes),
+        )
+
+    def forward(self, x):
+        return self.layers(x)
+
+
+def train_classifier(epochs, train_loader, encoder, classifier, criterion, optimizer):
+    device = 'cuda' if torch.cuda.is_available else 'cpu'
+
+    for epoch in range(epochs):
+        # Classifier Training
+        for x, label in train_loader:
+            x, label = x.to(device), label.to(device)
+
+            h = encoder(x)  # [batch, 512]
+            preds = classifier(h)  # [batch, num_classes]
+
+            loss = criterion(preds, label)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        print("[%d/%d] classifier loss : %.4f" %
+              (epoch + 1, epochs, loss.item()))
 
 
 def fit_model(args: DictConfig):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     # Prepare model
     torch.manual_seed(args.seed)
-    assert args.backbone in ["resnet18", "resnet34"]
+    assert args.backbone in ["resnet18", "resnet34", "densenet121"]
     base_encoder = eval(args.backbone)
     model = SimCLR(base_encoder, projection_dim=args.projection_dim).to(device)
     logging.info("Fitting SimCLR model")
     model.fit(args, device)
+    # model_path = Path.cwd() / f"models/simclr_{args.backbone}_epoch{args.epochs}.pt" #TODO: comment
+    # model.load_state_dict(torch.load(model_path), strict=False) #TODO: comment
+
+    classifier = Classifier(512, 10).to(device)
+    data_dir = hydra.utils.to_absolute_path(args.data_dir)
+    train_set = CIFAR10(data_dir, train=True, transform=ToTensor())
+    train_loader = DataLoader(train_set, 25)
+
+    criterion = nn.CrossEntropyLoss()
+
+    params = classifier.parameters()
+
+    optimizer = torch.optim.Adam(params, lr=1e-4)
+
+    train_classifier(100, train_loader, model.encoder, classifier, criterion, optimizer)
+
+    torch.save(
+        classifier.state_dict(),
+        Path.cwd() / f"models/classifier.pt",
+    )
 
 
 def consistency_feature_importance(args: DictConfig):
+    print(f'seed = {args.seed}')
     torch.manual_seed(args.seed)
     save_dir = Path.cwd() / "consistency_features"
     if not save_dir.exists():
@@ -49,9 +106,12 @@ def consistency_feature_importance(args: DictConfig):
     pert_percentages = [5, 10, 20, 50, 80, 100]
     perturbation = GaussianBlur(21, sigma=5).to(device)
 
-    assert args.backbone in ["resnet18", "resnet34"]
+    assert args.backbone in ["resnet18", "resnet34", "densenet121"]
     base_encoder = eval(args.backbone)
     model = SimCLR(base_encoder, projection_dim=args.projection_dim).to(device)
+    # classifier_path = Path.cwd() / f"models/classifier.pt"
+    # classifier = Classifier(512, 10).to(device)
+    # model.load_state_dict(torch.load(classifier_path), strict=False)
     logging.info(
         f"Base model: {args.backbone} - feature dim: {model.feature_dim} - projection dim {args.projection_dim}"
     )
@@ -60,6 +120,7 @@ def consistency_feature_importance(args: DictConfig):
     # Compute feature importance
     W = 32
     test_batch_size = int(args.batch_size / 20)
+    # perturbation = torch.zeros((test_batch_size, 3, 32, 32)).to(device) #TODO: Added to check different baseline
     encoder = model.encoder
     data_dir = hydra.utils.to_absolute_path(args.data_dir)
     test_set = CIFAR10(data_dir, False, transform=ToTensor())
@@ -87,22 +148,42 @@ def consistency_feature_importance(args: DictConfig):
             logging.info(
                 f"Perturbing {pert_percentage}% of the features with {method_name}"
             )
-            mask_size = int(pert_percentage * W**2 / 100)
+            mask_size = int(pert_percentage * W ** 2 / 100)
             masks = generate_masks(attr, mask_size)
-            for batch_id, (images, _) in enumerate(test_loader):
+            # correct = 0
+            # total = 0
+            for batch_id, (images, labels) in enumerate(test_loader):
                 mask = masks[
-                    batch_id * test_batch_size : batch_id * test_batch_size
-                    + len(images)
-                ].to(device)
+                       batch_id * test_batch_size: batch_id * test_batch_size
+                                                   + len(images)
+                       ].to(device)
                 images = images.to(device)
+                # labels = labels.to(device)
                 original_reps = encoder(images)
+                for i in range(5):
+                    save_image(torch.Tensor(images[i]), "original_" + str(i) + ".png")
                 images = mask * images + (1 - mask) * perturbation(images)
+                for i in range(5):
+                    save_image(torch.Tensor(images[i]),
+                               "perturbed_" + str(i) + "_" + method_name.split()[0] + "_" + str(
+                                   pert_percentage) + ".png")
                 pert_reps = encoder(images)
+
+                # output = classifier(original_reps)  # [batch, num_classes]
+                # preds = torch.argmax(output, dim=1)
+                # print(preds)
+
+                # correct += int(torch.sum(preds == labels))
+                # total += int(labels.size(0))
+                # print(correct)
+                # print(total)
                 rep_shift = torch.mean(
                     torch.sum((original_reps - pert_reps) ** 2, dim=-1)
                 ).item()
                 results_data.append([method_name, pert_percentage, rep_shift])
-
+            # acc = correct/total
+            # print(acc)
+            # results_data.append([method_name, pert_percentage, acc])
     logging.info("Saving the plot")
     results_df = pd.DataFrame(
         results_data, columns=["Method", "% Perturbed Pixels", "Representation Shift"]
@@ -133,7 +214,7 @@ def consistency_example_importance(args: DictConfig):
 
     # Prepare the model
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    assert args.backbone in ["resnet18", "resnet34"]
+    assert args.backbone in ["resnet18", "resnet34", "densenet121"]
     base_encoder = eval(args.backbone)
     model = SimCLR(base_encoder, projection_dim=args.projection_dim).to(device)
     logging.info(
@@ -199,8 +280,18 @@ def consistency_example_importance(args: DictConfig):
 @hydra.main(config_name="simclr_config.yaml", config_path=str(Path.cwd()))
 def main(args: DictConfig):
     if args.experiment_name == "consistency_features":
+        # args.seed = 123
+        # wd = Path.cwd() / 'black_pixels'
+        # if not wd.exists():
+        #    os.makedirs(wd)
+        # os.chdir(wd)
         consistency_feature_importance(args)
     elif args.experiment_name == "consistency_examples":
+        # args.seed = 123
+        # wd = Path.cwd() / str(args.seed)
+        # if not wd.exists():
+        #    os.makedirs(wd)
+        # os.chdir(wd)
         consistency_example_importance(args)
     else:
         raise ValueError("Invalid experiment name")

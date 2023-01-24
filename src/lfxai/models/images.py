@@ -1062,13 +1062,22 @@ class SimCLR(nn.Module):
         self.encoder = base_encoder(
             pretrained=True
         )  # load model from torchvision.models without pretrained weights.
-        self.feature_dim = self.encoder.fc.in_features
+
+        if base_encoder.__name__ == "densenet121":
+            self.feature_dim = self.encoder.classifier.in_features
+        else:
+            self.feature_dim = self.encoder.fc.in_features
 
         # Customize for CIFAR10. Replace conv 7x7 with conv 3x3, and remove first max pooling.
         # See Section B.9 of SimCLR paper.
         self.encoder.conv1 = nn.Conv2d(3, 64, 3, 1, 1, bias=False)
         self.encoder.maxpool = nn.Identity()
-        self.encoder.fc = nn.Identity()  # remove final fully connected layer.
+
+        # remove final fully connected layer.
+        if base_encoder.__name__ == "densenet121":
+            self.encoder.classifier = nn.Identity()
+        else:
+            self.encoder.fc = nn.Identity()
 
         # Add MLP projection.
         self.projection_dim = projection_dim
