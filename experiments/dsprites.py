@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 from captum.attr import GradientShap
-from explanations.features import attribute_individual_dim
+from lfxai.explanations.features import attribute_individual_dim
 from torch.utils.data import random_split
 
 from lfxai.models.images import VAE, DecoderBurgess, EncoderBurgess
