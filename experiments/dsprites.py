@@ -53,9 +53,8 @@ def disvae_feature_importance(
         dsprites_dataset, [train_size, test_size]
     )
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=False
-    )
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    logging.info(test_size)
 
     # Create saving directory
     save_dir = Path.cwd() / "results/dsprites/vae"
@@ -95,8 +94,12 @@ def disvae_feature_importance(
         loss.beta = beta
         name = f"{str(loss)}-vae_beta{beta}_run{run}"
         model = VAE(img_size, encoder, decoder, dim_latent, loss, name=name)
-        logging.info(f"Now fitting {name}")
-        model.fit(device, train_loader, test_loader, save_dir, n_epochs)
+        model_dir = save_dir / (name + ".pt")
+        if not model_dir.exists():
+            logging.info(f"Now fitting {name}")
+            model.fit(device, train_loader, test_loader, save_dir, n_epochs)
+
+        logging.info(f"Now loading {name}")
         model.load_state_dict(torch.load(save_dir / (name + ".pt")), strict=False)
 
         # Compute test-set saliency and associated metrics
@@ -136,7 +139,8 @@ if __name__ == "__main__":
     parser.add_argument("--n_runs", type=int, default=5)
     parser.add_argument("--batch_size", type=int, default=500)
     parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--test_split", type=float, default=0.1)
     args = parser.parse_args()
     disvae_feature_importance(
-        n_runs=args.n_runs, batch_size=args.batch_size, random_seed=args.seed
+        n_runs=args.n_runs, batch_size=args.batch_size, random_seed=args.seed, test_split=args.test_split
     )
