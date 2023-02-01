@@ -135,7 +135,6 @@ def consistency_example_importance(
     n_epochs: int = 150,
     subtrain_size: int = 200,
     checkpoint_interval: int = 10,
-    n_examples: int = 100
 ) -> None:
     # Initialize seed and device
     torch.random.manual_seed(random_seed)
@@ -147,7 +146,7 @@ def consistency_example_importance(
 
     # Load dataset
     train_dataset = ECG5000(data_dir, experiment="examples")
-    train_dataset, test_dataset = random_split(train_dataset, (5000-n_examples, n_examples))
+    train_dataset, test_dataset = random_split(train_dataset, (4000, 1000))
     train_loader = DataLoader(train_dataset, batch_size, True)
     test_loader = DataLoader(test_dataset, batch_size, False)
     # X_train = torch.stack([train_dataset[k][0] for k in range(len(train_dataset))])
