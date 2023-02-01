@@ -227,7 +227,7 @@ def consistency_example_importance(args: DictConfig):
 
 @hydra.main(config_name="simclr_config.yaml", config_path=str(Path.cwd()))
 def main(args: DictConfig):
-    consistency_feature_importance(args)
+    # consistency_feature_importance(args)
     consistency_example_importance(args)
 
 
