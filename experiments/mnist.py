@@ -92,13 +92,11 @@ def consistency_feature_importance(
     if not save_dir.exists():
         os.makedirs(save_dir)
 
-    model_path = Path.cwd() / f"models/simclr_{args.backbone}_epoch{args.epochs}.pt"
     # Fit a model if it does not exist yet
-    if not model_path.exists():
-        if not (Path.cwd() / "models").exists():
-            os.makedirs(Path.cwd() / "models")
-
+    model_dir = save_dir / (autoencoder.name + ".pt")
+    if not model_dir.exists():
         autoencoder.fit(device, train_loader, test_loader, save_dir, n_epochs)
+
 
     autoencoder.load_state_dict(
         torch.load(save_dir / (autoencoder.name + ".pt")), strict=False
@@ -122,110 +120,6 @@ def consistency_feature_importance(
             attr = attribute_auxiliary(
                 encoder, test_loader, device, attr_method(encoder), baseline_features
             )
-        else:
-            np.random.seed(random_seed)
-            attr = np.random.randn(len(test_dataset), 1, W, W)
-
-        for pert_percentage in pert_percentages:
-            logging.info(
-                f"Perturbing {pert_percentage}% of the features with {method_name}"
-            )
-            mask_size = int(pert_percentage * W**2 / 100)
-            masks = generate_masks(attr, mask_size)
-            for batch_id, (images, _) in enumerate(test_loader):
-                mask = masks[
-                    batch_id * batch_size : batch_id * batch_size + len(images)
-                ].to(device)
-                images = images.to(device)
-                original_reps = encoder(images)
-                images = mask * images
-                pert_reps = encoder(images)
-                rep_shift = torch.mean(
-                    torch.sum((original_reps - pert_reps) ** 2, dim=-1)
-                ).item()
-                results_data.append([method_name, pert_percentage, rep_shift])
-
-    logging.info("Saving the plot")
-    results_df = pd.DataFrame(
-        results_data, columns=["Method", "% Perturbed Pixels", "Representation Shift"]
-    )
-    sns.set(font_scale=1.3)
-    sns.set_style("white")
-    sns.set_palette("colorblind")
-    sns.lineplot(
-        data=results_df, x="% Perturbed Pixels", y="Representation Shift", hue="Method"
-    )
-    plt.tight_layout()
-    plt.savefig(save_dir / "mnist_consistency_features.pdf")
-    plt.close()
-
-def consistency_feature_importance_with_deeplift(
-    random_seed: int = 1,
-    batch_size: int = 200,
-    dim_latent: int = 4,
-    n_epochs: int = 100,
-) -> None:
-    # Initialize seed and device
-    torch.random.manual_seed(random_seed)
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    W = 28  # Image width = height
-    pert_percentages = [5, 10, 20, 50, 80, 100]
-
-    # Load MNIST
-    data_dir = Path.cwd() / "data/mnist"
-    train_dataset = torchvision.datasets.MNIST(data_dir, train=True, download=True)
-    test_dataset = torchvision.datasets.MNIST(data_dir, train=False, download=True)
-    train_transform = transforms.Compose([transforms.ToTensor()])
-    test_transform = transforms.Compose([transforms.ToTensor()])
-    train_dataset.transform = train_transform
-    test_dataset.transform = test_transform
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=batch_size, shuffle=False
-    )
-
-    # Initialize encoder, decoder and autoencoder wrapper
-    pert = RandomNoise()
-    encoder = EncoderMnist(encoded_space_dim=dim_latent)
-    decoder = DecoderMnist(encoded_space_dim=dim_latent)
-    autoencoder = AutoEncoderMnist(encoder, decoder, dim_latent, pert)
-    encoder.to(device)
-    decoder.to(device)
-
-    # Train the denoising autoencoder
-    save_dir = Path.cwd() / "results/mnist/consistency_features_with_deeplift"
-    if not save_dir.exists():
-        os.makedirs(save_dir)
-    # autoencoder.fit(device, train_loader, test_loader, save_dir, n_epochs)
-    autoencoder.load_state_dict(
-        torch.load(save_dir / (autoencoder.name + ".pt")), strict=False
-    )
-    autoencoder.to(device)
-
-    attr_methods = {
-        "DeepLift": DeepLift,
-        "Gradient Shap": GradientShap,
-        "Integrated Gradients": IntegratedGradients,
-        "Saliency": Saliency,
-        "Random": None,
-    }
-    results_data = []
-    baseline_features = torch.zeros((1, 1, W, W)).to(
-        device
-    )  # Baseline image for attributions
-    for method_name in attr_methods:
-        logging.info(f"Computing feature importance with {method_name}")
-        results_data.append([method_name, 0, 0])
-        attr_method = attr_methods[method_name]
-        if attr_method is not None:
-            if method_name == "DeepLift":
-                attr = attribute_individual_dim(
-                    encoder, dim_latent, test_loader, device, attr_method(encoder), baseline_features
-                )
-            else:
-                attr = attribute_auxiliary(
-                    encoder, test_loader, device, attr_method(encoder), baseline_features
-                )
         else:
             np.random.seed(random_seed)
             attr = np.random.randn(len(test_dataset), 1, W, W)
@@ -302,9 +196,13 @@ def consistency_examples(
     save_dir = Path.cwd() / "results/mnist/consistency_examples"
     if not save_dir.exists():
         os.makedirs(save_dir)
-    autoencoder.fit(
-        device, train_loader, test_loader, save_dir, n_epochs, checkpoint_interval=10
-    )
+
+    model_dir= save_dir / (autoencoder.name + ".pt")
+    if not model_dir.exists():
+        autoencoder.fit(
+            device, train_loader, test_loader, save_dir, n_epochs, checkpoint_interval=10
+        )
+
     autoencoder.load_state_dict(
         torch.load(save_dir / (autoencoder.name + ".pt")), strict=False
     )
@@ -769,7 +667,12 @@ def roar_test(
     logging.info("Training the initial autoencoder")
     autoencoder = AutoEncoderMnist(encoder, decoder, dim_latent, pert, name="model")
     autoencoder.load_state_dict(torch.load(save_dir / "model_initial.pt"), strict=False)
-    autoencoder.fit(device, train_loader, test_loader, save_dir, n_epochs)
+
+    model_dir = save_dir / (autoencoder.name + ".pt")
+    if not model_dir.exists():
+        logging.info("Training the initial autoencoder")
+        autoencoder.fit(device, train_loader, test_loader, save_dir, n_epochs)
+
     autoencoder.load_state_dict(
         torch.load(save_dir / (autoencoder.name + ".pt")), strict=False
     )
@@ -822,9 +725,13 @@ def roar_test(
             )
             encoder.to(device)
             decoder.to(device)
-            autoencoder.fit(
-                device, masked_train_loader, test_loader, save_dir, n_epochs
-            )
+
+            model_dir = save_dir / (autoencoder.name + ".pt")
+            if not model_dir.exists():
+                autoencoder.fit(
+                    device, masked_train_loader, test_loader, save_dir, n_epochs
+                )
+
             autoencoder.load_state_dict(
                 torch.load(save_dir / (autoencoder_name + ".pt")), strict=False
             )
@@ -856,6 +763,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=300)
     parser.add_argument("--random_seed", type=int, default=1)
     parser.add_argument("--method", type=str, default='saliency')
+    parser.add_argument("--subtrain_size", type=int, default=1000)
     args = parser.parse_args()
     if args.name == "disvae":
         disvae_feature_importance(
@@ -870,7 +778,7 @@ if __name__ == "__main__":
             batch_size=args.batch_size, random_seed=args.random_seed
         )
     elif args.name == "consistency_examples":
-        consistency_examples(batch_size=args.batch_size, random_seed=args.random_seed)
+        consistency_examples(batch_size=args.batch_size, random_seed=args.random_seed, subtrain_size=args.subtrain_size)
     elif args.name == "roar_test":
         roar_test(batch_size=args.batch_size, random_seed=args.random_seed, n_epochs=10)
     else:

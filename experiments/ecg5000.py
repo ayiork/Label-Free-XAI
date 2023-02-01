@@ -59,7 +59,9 @@ def consistency_feature_importance(
 
     # Fit an autoencoder
     autoencoder = RecurrentAutoencoder(time_steps, n_features, dim_latent)
-    autoencoder.fit(device, train_loader, val_loader, save_dir, n_epochs, patience=10)
+    model_dir= save_dir / (autoencoder.name + ".pt")
+    if not model_dir.exists():
+        autoencoder.fit(device, train_loader, val_loader, save_dir, n_epochs, patience=10)
     autoencoder.train()
     encoder = autoencoder.encoder
     autoencoder.load_state_dict(
@@ -133,6 +135,7 @@ def consistency_example_importance(
     n_epochs: int = 150,
     subtrain_size: int = 200,
     checkpoint_interval: int = 10,
+    n_examples: int = 100
 ) -> None:
     # Initialize seed and device
     torch.random.manual_seed(random_seed)
@@ -144,7 +147,7 @@ def consistency_example_importance(
 
     # Load dataset
     train_dataset = ECG5000(data_dir, experiment="examples")
-    train_dataset, test_dataset = random_split(train_dataset, (4000, 1000))
+    train_dataset, test_dataset = random_split(train_dataset, (5000-n_examples, n_examples))
     train_loader = DataLoader(train_dataset, batch_size, True)
     test_loader = DataLoader(test_dataset, batch_size, False)
     # X_train = torch.stack([train_dataset[k][0] for k in range(len(train_dataset))])
@@ -158,17 +161,27 @@ def consistency_example_importance(
     save_dir = Path.cwd() / "results/ecg5000/consistency_examples"
     if not save_dir.exists():
         os.makedirs(save_dir)
-    autoencoder.fit(
-        device,
-        train_loader,
-        test_loader,
-        save_dir,
-        n_epochs,
-        checkpoint_interval=checkpoint_interval,
-    )
+
+    model_dir = save_dir / (autoencoder.name + ".pt")
+    if not model_dir.exists():
+        autoencoder.fit(
+            device,
+            train_loader,
+            test_loader,
+            save_dir,
+            n_epochs,
+            checkpoint_interval=checkpoint_interval,
+        )
     autoencoder.load_state_dict(
         torch.load(save_dir / (autoencoder.name + ".pt")), strict=False
     )
+
+    for n_checkpoint in range(12):
+        path_to_checkpoint = (
+                save_dir / f"{autoencoder.name}_checkpoint{n_checkpoint}.pt"
+        )
+        if path_to_checkpoint.exists():
+            autoencoder.checkpoints_files.append(path_to_checkpoint)
 
     # Prepare subset loaders for example-based explanation methods
     y_train = torch.tensor([train_dataset[k][1] for k in range(len(train_dataset))])
