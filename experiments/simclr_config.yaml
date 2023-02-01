@@ -14,6 +14,7 @@ dataset: cifar10
 data_dir: data/cifar10
 experiment_name: consistency_features # consistency_features or consistency_examples
 masking_method: blurred # blurred or black
+num_examples: 100 # number of examples from test set to calculate the feature importance
 
 # model
 backbone: resnet18 #or densenet121, resnet18, resnet34, resnet50

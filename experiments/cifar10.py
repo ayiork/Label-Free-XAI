@@ -73,7 +73,14 @@ def consistency_feature_importance(args: DictConfig):
     encoder = model.encoder
     data_dir = hydra.utils.to_absolute_path(args.data_dir)
     test_set = CIFAR10(data_dir, False, transform=ToTensor())
-    test_loader = DataLoader(test_set, test_batch_size)
+    print(args.num_examples)
+    if args.num_examples > 0:
+        test_indices = torch.randperm(len(test_set))[:args.num_examples]
+        test_subset = Subset(test_set, test_indices)
+        test_loader = DataLoader(test_subset, test_batch_size)
+    else:
+        test_loader = DataLoader(test_set, test_batch_size)
+
     attr_methods = {
         "Gradient Shap": GradientShap,
         "Integrated Gradients": IntegratedGradients,
@@ -158,7 +165,10 @@ def consistency_example_importance(args: DictConfig):
     logging.info(
         f"Base model: {args.backbone} - feature dim: {model.feature_dim} - projection dim {args.projection_dim}"
     )
-    model.load_state_dict(torch.load(model_path), strict=False)
+    if torch.cuda.is_available():
+        model.load_state_dict(torch.load(model_path), strict=False)
+    else:
+        model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')), strict=False)
 
     # Compute feature importance
     test_batch_size = int(args.batch_size / 20)
