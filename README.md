@@ -125,15 +125,21 @@ Run the following script
 ```shell
 python -m cifar10
 ```
-The experiment can be selected by changing the experiment_name
-parameter in [this file](simclr_config.yaml).
-The parameter can take the following values:
+The experiment can be selected by changing the experiment_name or masking_method
+parameter in [this file](experiments/simclr_config.yaml).
+The parameters can take the following values:
 
 | experiment_name      | description                                                                  |
 |----------------------|------------------------------------------------------------------------------|
 | consistency_features | Consistency check for label-free<br/> feature importance (paper Section 4.1) |
 | consistency_examples | Consistency check for label-free<br/> example importance (paper Section 4.1) |
 
+| masking_method | description                    |
+|----------------|--------------------------------|
+| blurred        | Uses blur mask for the images  |
+| black          | Uses black mask for the images |
+
+To change the encoder, choose the name of the encoder in  [this file](experiments/simclr_config.yaml).
 
 
 The resulting plots and data are saved [here](results/cifar10).
@@ -144,6 +150,21 @@ python -m dsprites
 ```
 The experiment needs several hours to run since several VAEs are trained.
 The resulting plots and data are saved [here](results/dsprites).
+
+### FASHION MNIST experiments
+In the `experiments` folder, run the following script
+```shell
+python -m fashionmist --name experiment_name
+```
+where experiment_name can take the following values:
+
+| experiment_name      | description                                             |
+|----------------------|---------------------------------------------------------|
+| consistency_features | Consistency check for label-free<br/> feature importance |
+| consistency_examples | Consistency check for label-free<br/> example importance  |
+| pretext              | Pretext task sensitivity<br/> use case                  |
+
+
 ## 4. Citing
 
 If you use this code, please cite the associated paper:
