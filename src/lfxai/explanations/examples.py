@@ -226,7 +226,11 @@ class TracIn(ExampleBasedExplainer, ABC):
     ) -> torch.Tensor:
         attribution = torch.zeros(len(X_test), len(train_idx))
         for checkpoint_file in self.model.checkpoints_files:
-            self.model.load_state_dict(torch.load(checkpoint_file), strict=False)
+            if torch.cuda.is_available():
+                self.model.load_state_dict(torch.load(checkpoint_file), strict=False)
+            else:
+                self.model.load_state_dict(torch.load(checkpoint_file), strict=False, map_location=torch.device('cpu'))
+
             train_loss = [
                 self.loss_f(
                     self.X_train[idx : idx + 1], self.model(self.X_train[idx : idx + 1])
@@ -271,7 +275,11 @@ class TracIn(ExampleBasedExplainer, ABC):
         for checkpoint_number, checkpoint_file in enumerate(
             tqdm(self.model.checkpoints_files, unit="checkpoint", leave=False)
         ):
-            self.model.load_state_dict(torch.load(checkpoint_file), strict=False)
+            if torch.cuda.is_available():
+                self.model.load_state_dict(torch.load(checkpoint_file), strict=False)
+            else:
+                self.model.load_state_dict(torch.load(checkpoint_file), strict=False, map_location=torch.device('cpu'))
+
             for train_idx, (x_train, _) in enumerate(
                 tqdm(train_loader, unit="example", leave=False)
             ):

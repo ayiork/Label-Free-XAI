@@ -759,12 +759,13 @@ if __name__ == "__main__":
     )
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", type=str, default="disvae")
-    parser.add_argument("--n_runs", type=int, default=1)
+    parser.add_argument("--n_runs", type=int, default=5)
     parser.add_argument("--batch_size", type=int, default=300)
     parser.add_argument("--random_seed", type=int, default=1)
-    parser.add_argument("--method", type=str, default='saliency')
+    parser.add_argument("--method", type=str, default="saliency")
     parser.add_argument("--subtrain_size", type=int, default=1000)
     args = parser.parse_args()
+    logging.info(args.method)
     if args.name == "disvae":
         disvae_feature_importance(
             n_runs=args.n_runs, batch_size=args.batch_size, random_seed=args.random_seed, method=args.method
