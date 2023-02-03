@@ -5,7 +5,6 @@
 
 ![image](https://github.com/vanderschaarlab/Label-Free-XAI/raw/main/docs/illustration.png "Label-Free Explainability")
 
-Code Author: Jonathan Crabbé ([jc2133@cam.ac.uk](mailto:jc2133@cam.ac.uk))
 
 This repository contains the implementation of LFXAI, a framework to explain the latent
 representations of unsupervised black-box models with the help of usual feature importance and example-based methods.
@@ -90,17 +89,14 @@ python -m mnist --name experiment_name
 ```
 where experiment_name can take the following values:
 
-| experiment_name      | description                                                                  |
-|----------------------|------------------------------------------------------------------------------|
-| consistency_features | Consistency check for label-free<br/> feature importance (paper Section 4.1) |
-| consistency_examples | Consistency check for label-free<br/> example importance (paper Section 4.1) |
-| roar_test            | ROAR test for label-free<br/> feature importance (paper Appendix C)          |
-| pretext              | Pretext task sensitivity<br/> use case (paper Section 4.2)                   |
-| pretext_integrated_grads               |      |
-| pretext_saliency               |      |
-| disvae               | Challenging assumptions with <br/> disentangled VAEs (paper Section 4.3)     |
-| disvae_integrated_grads               |      |
-| disvae_saliency               |      |
+| experiment_name      | description                                                                                                                            |
+|----------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| consistency_features | Consistency check for label-free<br/> feature importance                                                                               |
+| consistency_examples | Consistency check for label-free<br/> example importance                                                                               |
+| roar_test            | ROAR test for label-free<br/> feature importance                                                                                       |
+| pretext              | Pretext task sensitivity<br/> use case. ( with --method argument you can choose from integrated_gradients, saliency and gradient_shap) |
+| disvae               | Challenging assumptions with <br/> disentangled VAEs.  ( with --method argument you can choose from integrated_gradients, saliency and gradient_shap)                                                                                 |
+
 
 The resulting plots and data are saved [here](results/mnist).
 
@@ -165,8 +161,8 @@ where experiment_name can take the following values:
 | pretext              | Pretext task sensitivity<br/> use case                  |
 
 
-## 4. Citing
-
+## 4. Citing the original paper
+Part of the code was written by the author of the original paper.\
 If you use this code, please cite the associated paper:
 
 ```
