@@ -229,7 +229,7 @@ class TracIn(ExampleBasedExplainer, ABC):
             if torch.cuda.is_available():
                 self.model.load_state_dict(torch.load(checkpoint_file), strict=False)
             else:
-                self.model.load_state_dict(torch.load(checkpoint_file), strict=False, map_location=torch.device('cpu'))
+                self.model.load_state_dict(torch.load(checkpoint_file, map_location=torch.device('cpu')), strict=False)
 
             train_loss = [
                 self.loss_f(
@@ -278,7 +278,7 @@ class TracIn(ExampleBasedExplainer, ABC):
             if torch.cuda.is_available():
                 self.model.load_state_dict(torch.load(checkpoint_file), strict=False)
             else:
-                self.model.load_state_dict(torch.load(checkpoint_file), strict=False, map_location=torch.device('cpu'))
+                self.model.load_state_dict(torch.load(checkpoint_file,  map_location=torch.device('cpu')), strict=False)
 
             for train_idx, (x_train, _) in enumerate(
                 tqdm(train_loader, unit="example", leave=False)
