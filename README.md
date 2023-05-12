@@ -6,7 +6,7 @@
 ![image](https://github.com/vanderschaarlab/Label-Free-XAI/raw/main/docs/illustration.png "Label-Free Explainability")
 
 
-This repository contains the implementation of LFXAI, a framework to explain the latent
+This repository contains the code used for reproducing LFXAI, a framework to explain the latent
 representations of unsupervised black-box models with the help of usual feature importance and example-based methods.
 For more details, please read the original paper [ICML 2022 paper](https://arxiv.org/abs/2203.01928): 'Label-Free Explainability for Unsupervised Models'.
 
