@@ -1,4 +1,4 @@
-# Reproducibility study: Label-Free Explainability for Unsupervised Models
+# Reproducibility Study: Label-Free Explainability for Unsupervised Models
 [![Tests](https://github.com/vanderschaarlab/Label-Free-XAI/actions/workflows/test.yml/badge.svg)](https://github.com/vanderschaarlab/Label-Free-XAI/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.png)](https://opensource.org/licenses/MIT)
 [![Documentation Status](https://readthedocs.org/projects/lfxai/badge/?version=latest)](https://lfxai.readthedocs.io/en/latest/?badge=latest)
@@ -8,7 +8,7 @@
 
 This repository contains the implementation of LFXAI, a framework to explain the latent
 representations of unsupervised black-box models with the help of usual feature importance and example-based methods.
-For more details, please read our [ICML 2022 paper](https://arxiv.org/abs/2203.01928): 'Label-Free Explainability for Unsupervised Models'.
+For more details, please read the original paper [ICML 2022 paper](https://arxiv.org/abs/2203.01928): 'Label-Free Explainability for Unsupervised Models'.
 
 ## 1. Installation
 From PyPI
